@@ -1,0 +1,28 @@
+
+
+Table drivers as D {
+  id int [pk, increment] // auto-increment
+  name varchar [not null]
+  car varchar [not null]
+  
+}
+
+Table clients as C {
+  id int [pk, increment] // auto-increment
+  name varchar [not null]
+  is_vip bool [not null]
+}
+
+Table orders as O {
+  id int [pk, increment] // auto-increment
+  address_from varchar [not null]
+  address_to varchar [not null]
+  client_id int [not null]
+  driver_id int [not null]
+  date_created timestamp [not null]
+  status varchar [not null]
+  
+}
+
+Ref: O.client_id < C.id
+Ref: O.driver_id < D.id

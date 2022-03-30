@@ -1,0 +1,356 @@
+
+openapi: 3.0.1
+info:
+  title: Сервис заказа такси
+  description: 'Это апи для сервиса по заказу такси. Сделать сегодня!'
+  version: 1.0.0
+servers:
+- url: http://0.0.0.0:8080/api/v1
+tags:
+- name: drivers
+  description: Водители
+- name: clients
+  description: Пассажиры
+- name: orders
+  description: Заказы
+paths:
+
+  /orders:
+    post:
+      tags:
+      - orders
+      summary: Добавить новый заказ
+      
+      requestBody:
+        description: тело для нового заказа
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderNoId'
+        required: true
+      responses:
+        201:
+          description: created!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        400:
+          description: плохой json
+          content: {}
+      
+    get:
+      tags:
+      - orders
+      summary: Найти заказ
+      description: возвращает один заказ
+      parameters:
+      - name: orderId
+        in: query
+        description: ID заказа
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        400:
+          description: Неправильный запрос
+          content: {}
+        404:
+          description: Объект в базе не найден
+          content: {}
+  
+  /orders/{orderId}:
+
+    put:
+      tags:
+      - orders
+      summary: Изменить заказ
+      parameters:
+      - name: orderId
+        in: path
+        description: id заказа
+        required: true
+        schema:
+          type: integer
+          format: int64  
+      requestBody:
+        description: Изменённый заказ
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderNoId'
+        required: true
+      responses:
+        200:
+          description: Изменено!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        400:
+          description: Неправильный запрос
+          content: {}
+        404:
+          description: Объект в базе не найден
+          content: {}
+
+  /drivers:
+    post:
+      tags:
+      - drivers
+      summary: Добавить в систему водителя
+      requestBody:
+        description: объект который будет занесён в таблицу
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverNoId'
+        required: true
+      responses:
+        201:
+          description: created!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        400:
+          description: Неправильный запрос
+          content: {}
+
+      
+    get:
+      tags:
+      - drivers
+      summary: Найти водителя по id
+      parameters:
+      - name: driverId
+        in: query
+        description: ID Водителя
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        400:
+          description: Неправильный запрос
+          content: {}
+        404:
+          description: Объект в базе не найден
+          content: {}
+
+  
+  /drivers/{driverId}:
+    delete:
+      tags:
+      - drivers
+      summary: Удалить водителя из системы
+      parameters:
+      - name: driverId
+        in: path
+        description: ID водителя для удаления
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        204:
+          description: Удалено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        400:
+          description: Неправильный запрос
+          content: {}
+        404:
+          description: Объект в базе не найден
+          content: {}
+
+
+  /clients:
+    post:
+      tags:
+      - clients
+      summary: Занести в базу клиента
+      requestBody:
+        description: Объект клиента для создания в базе
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientNoId'
+        required: true
+      responses:
+        201:
+          description: created!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        400:
+          description: Неправильный запрос
+          content: {}
+
+      
+    get:
+      tags:
+      - clients
+      summary: Найти клиента по ID
+      parameters:
+      - name: clientId
+        in: query
+        description: ID клиента
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        400:
+          description: Неправильный запрос
+          content: {}
+        404:
+          description: Объект в базе не найден
+          content: {}
+
+  
+  /clients/{clientId}:
+    delete:
+      tags:
+      - clients
+      summary: Удалить клиента из базы
+      parameters:
+      - name: clientId
+        in: path
+        description: ID Клиента
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        204:
+          description: Удалено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        400:
+          description: Неправильный запрос
+          content: {}
+        404:
+          description: Объект в базе не найден
+          content: {}
+
+
+      
+      
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        client_id:
+          type: integer
+          format: int64
+        driver_id:
+          type: integer
+          format: int64
+        date_created:
+          type: string
+          format: date-time
+        status:
+          type: string
+          description: Order Status
+          enum:
+          - not_accepted
+          - in_progress
+          - done
+          - cancelled
+        address_from:
+          type: string
+        address_to:
+          type: string
+          
+    OrderNoId:
+      type: object
+      properties:
+        client_id:
+          type: integer
+          format: int64
+        driver_id:
+          type: integer
+          format: int64
+        date_created:
+          type: string
+          format: date-time
+        status:
+          type: string
+          description: Order Status
+          enum:
+          - not_accepted
+          - in_progress
+          - done
+          - cancelled
+        address_from:
+          type: string
+        address_to:
+          type: string
+     
+    Driver:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        car:
+          type: string
+    DriverNoId:
+      type: object
+      properties:
+        name:
+          type: string
+        car:
+          type: string
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        is_vip:
+          type: boolean
+          
+    ClientNoId:
+      type: object
+      properties:
+        name:
+          type: string
+        is_vip:
+          type: boolean
+
+
