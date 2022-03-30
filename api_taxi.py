@@ -1,6 +1,7 @@
 from contextlib import contextmanager
+from functools import wraps
 from typing import Any, Callable
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 from jsonschema.exceptions import ValidationError
 from jsonschema.validators import validate
 from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, String, create_engine
@@ -106,17 +107,16 @@ orders_post_schema = {
 }
 
 
-def validate_json(schema_name: str) -> Callable:
+def validate_schema(schema_name: str) -> Callable:
     """Декоратор для валидации json из тела HTTP-запроса."""
-
-    def decorator(function: Callable) -> Callable:
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kw):
             try:
-                validate(request.get_json(), schema_name)
+                validate(request.json, schema_name)
             except ValidationError:
-                print("Ошибка валидации данных")
-                return Response("Bad Request", status=400)
-            return function(*args, **kwargs)
+                return Response("Bad Request: ошибка валидации данных", status=400)
+            return f(*args, **kw)
         return wrapper
     return decorator
 
@@ -128,29 +128,33 @@ Session = scoped_session(sessionmaker(expire_on_commit=False, bind=engine))
 
 @contextmanager
 def session_scope():
+    """Область действия сеанса."""
     session = Session()
     try:
         yield session
         session.commit()
-    except :
+    except:
         session.rollback()
         raise
     finally:
         session.close()
+
 
 # region Пассажиры
 
 
 @app.route("/clients/<int:client_id>", methods=["GET"])
 def get_client(client_id):
+    """Найти клиента по id."""
     with session_scope() as s:
         cli = s.query(Client).get(client_id)
     return cli.__repr__()
 
 
-@validate_json(clients_post_schema)
 @app.route("/clients", methods=["POST"])
+@validate_schema(clients_post_schema)
 def create_client():
+    """Занести в базу клиента."""
     content = request.get_json()
     with session_scope() as s:
         new_cli = Client(name=content["name"], is_vip=content["is_vip"])
@@ -161,6 +165,7 @@ def create_client():
 
 @app.route("/clients/<int:client_id>", methods=["DELETE"])
 def delete_client(client_id):
+    """Удалить клиента из базы."""
     with session_scope() as s:
         cli = s.query(Client).get(client_id)
         if cli is not None:
@@ -176,14 +181,16 @@ def delete_client(client_id):
 
 @app.route("/drivers/<int:driver_id>", methods=["GET"])
 def get_driver(driver_id):
+    """Найти водителя по id."""
     with session_scope() as s:
         dr = s.query(Driver).get(driver_id)
         return dr.__repr__()
 
 
-@validate_json(drivers_post_schema)
 @app.route("/drivers", methods=["POST"])
+@validate_schema(drivers_post_schema)
 def create_driver():
+    """Добавить в систему водителя."""
     content = request.get_json()
     with session_scope() as s:
         new_dr = Driver(name=content["name"], car=content["car"])
@@ -194,6 +201,7 @@ def create_driver():
 
 @app.route("/drivers/<int:driver_id>", methods=["DELETE"])
 def delete_driver(driver_id):
+    """Удалить водителя из системы."""
     with session_scope() as s:
         dr = s.query(Driver).get(driver_id)
         if dr is not None:
@@ -209,14 +217,16 @@ def delete_driver(driver_id):
 
 @app.route("/orders/<int:order_id>", methods=["GET"])
 def get_order(order_id):
+    """Найти заказ."""
     with session_scope() as s:
         ord = s.query(Order).get(order_id)
         return ord.__repr__()
 
 
-@validate_json(orders_post_schema)
 @app.route("/orders", methods=["POST"])
+@validate_schema(drivers_post_schema)
 def create_order():
+    """Добавить новый заказ."""
     content = request.get_json()
     with session_scope() as s:
         new_ord = Order(
@@ -232,9 +242,10 @@ def create_order():
         return ord_info.__repr__()
 
 
-@validate_json(orders_post_schema)
 @app.route("/orders/<int:order_id>", methods=["PUT"])
+@validate_schema(drivers_post_schema)
 def change_order(order_id):
+    """Изменить заказ."""
     with session_scope() as s:
         content = request.get_json()
         ord = s.query(Order).get(order_id)
